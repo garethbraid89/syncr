@@ -135,6 +135,7 @@ function sync_files($config, $direction = ' up')
     $local = $config['local']['server'];
     $password = $remote['password'];
     $ssh_port = (int) $remote['ssh_port'];
+    $ssh_key = $remote['key'];
     $from = trim($local['path'], '/').'/';
     $username = $remote['username'];
     $host = $remote['host'];
@@ -144,12 +145,19 @@ function sync_files($config, $direction = ' up')
 
     if ($direction == 'up') {
         echo "---> Sending files to remote server...\n";
+
         if ($password) {
             $command = 'sshpass -p "%s" rsync -zavP -e "ssh -p %d" %s "%s" "%s"';
             $command = sprintf($command, $password, $ssh_port, $exclude, $from, $remote_string);
         } else {
-            $command = 'rsync -zavP -e "ssh -p %d" %s "%s" "%s"';
-            $command = sprintf($command, $ssh_port, $exclude, $from, $remote_string);
+            if($ssh_key && is_readable($ssh_key)) {
+                $command = 'rsync -zavP -e "ssh -i %s -p %d" %s "%s" "%s"';
+                $command = sprintf($command, $ssh_key, $ssh_port, $exclude, $from, $remote_string);
+            }
+            else {
+                $command = 'rsync -zavP -e "ssh -p %d" %s "%s" "%s"';
+                $command = sprintf($command, $ssh_port, $exclude, $from, $remote_string);
+            }
         }
     } elseif ($direction == 'down') {
         echo "---> Getting files from remote server...\n";
